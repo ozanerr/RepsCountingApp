@@ -11,7 +11,7 @@ Anggota:
 3. Filbert Febrian Tanada (221110476)
 
 URL Aplikasi Live:
-Tidak melakukan deploy karena aplikasi mobile, tapi menyertakan build file .exe yang bisa didownload di folder aplikasi jadi atau akses link berikut 'https://drive.google.com/file/d/1CuSr6qookCNjnbOKjmgHus4hZ3oVHJYH/view?usp=sharing'
+Tidak melakukan deploy karena aplikasi mobile, tapi menyertakan build file .apk yang bisa didownload di folder aplikasi jadi atau akses link berikut 'https://drive.google.com/file/d/1CuSr6qookCNjnbOKjmgHus4hZ3oVHJYH/view?usp=sharing'
 
 Petunjuk Instalasi & Izin:
 1. Buka link Google Drive yang tersedia dan download file .apk aplikasi.
