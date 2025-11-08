@@ -1,5 +1,6 @@
 Judul:
 RepsCountingApp
+
 Deskripsi:
 RepsCountingApp merupakan aplikasi kebugaran berbasis AI yang dapat menghitung repetisi dan memberikan feedback dari gerakan bodyweight exercise yang kita lakukan
 
@@ -53,5 +54,4 @@ Klik tombol "Simpan" untuk menyimpan hasil (Repetisi, Tanggal, Foto) ke database
 Di menu utama, klik tab "History" di bagian bawah.
 Anda akan melihat daftar semua latihan yang pernah Anda simpan, diurutkan dari yang terbaru.
 Filter: Gunakan tombol "Tgl Mulai" dan "Tgl Akhir" untuk memfilter riwayat (rentang filter maksimal 30 hari).
-
 Hapus: Klik ikon tong sampah di sebelah kanan item untuk menghapusnya. (Akan muncul dialog konfirmasi sebelum data dihapus).
