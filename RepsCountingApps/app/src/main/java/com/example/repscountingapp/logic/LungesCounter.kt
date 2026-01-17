@@ -178,7 +178,7 @@ class LungesCounter {
         }
 
         lastShoulderY = avgShoulderY
-        val status = if (currentState == ExerciseState.UP) "TURUN" else "NAIK"
+        val status = if (currentState == ExerciseState.UP) "NAIK" else "TURUN"
         // jangan kirim feedback di antara repetisi
         return RepResult(repCount, status, null, null)
     }

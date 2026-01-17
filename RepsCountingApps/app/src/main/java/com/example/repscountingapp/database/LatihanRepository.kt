@@ -4,7 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import java.io.File
 import java.util.concurrent.TimeUnit
 
-class LatihanRepository(private val latihanDao: LatihanDao) {
+class LatihanRepository(private val latihanDao: LatihanDao, private val userProfileDao: UserProfileDao) {
 
     // fungsi buat nyimpen data
     suspend fun insert(history: LatihanHistory) {
@@ -33,5 +33,16 @@ class LatihanRepository(private val latihanDao: LatihanDao) {
         }
         // baru hapus datanya dari database
         latihanDao.delete(history)
+    }
+
+    fun getWeeklyHistory(): Flow<List<LatihanHistory>> {
+        val sevenDaysAgo = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(7)
+        return latihanDao.getHistorySince(sevenDaysAgo)
+    }
+
+    val userProfile: Flow<UserProfile?> = userProfileDao.getUserProfile()
+
+    suspend fun saveUserProfile(profile: UserProfile) {
+        userProfileDao.insertOrUpdate(profile)
     }
 }

@@ -4,6 +4,7 @@ import android.content.Context
 import com.example.repscountingapp.database.AppDatabase
 import com.example.repscountingapp.database.LatihanDao
 import com.example.repscountingapp.database.LatihanRepository
+import com.example.repscountingapp.database.UserProfileDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -29,7 +30,16 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideLatihanRepository(latihanDao: LatihanDao): LatihanRepository {
-        return LatihanRepository(latihanDao)
+    fun provideUserProfileDao(database: AppDatabase): UserProfileDao {
+        return database.userProfileDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideLatihanRepository(
+        latihanDao: LatihanDao,
+        userProfileDao: UserProfileDao // inject dao baru ke repo
+    ): LatihanRepository {
+        return LatihanRepository(latihanDao, userProfileDao)
     }
 }

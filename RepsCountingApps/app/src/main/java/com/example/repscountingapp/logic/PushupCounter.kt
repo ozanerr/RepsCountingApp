@@ -217,7 +217,7 @@ class PushupCounter {
         // Selalu update posisi terakhir
         lastShoulderY = avgShoulderY
 
-        val status = if (currentState == ExerciseState.UP) "TURUN" else "NAIK"
+        val status = if (currentState == ExerciseState.UP) "NAIK" else "TURUN"
         // Di antara repetisi, jangan kirim feedback apa-apa
         return RepResult(repCount, status, null, null)
     }

@@ -244,7 +244,7 @@ class LatihanFragment : Fragment() {
             "HIGH_KNEES",
             listOf(
                 "smartphone diletakkan vertikal",
-                "sikap badan menyamping arah kamera (45 derajat)",
+                "sikap badan menghadap kearah kamera depan",
                 "sikap awal berdiri tegak dengan tangan dipinggang, pastikan seluruh tubuh terlihat",
                 "lakukan high knees dengan benar, dimulai dari kaki kiri, dan tidak terlalu cepat"
             )

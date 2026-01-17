@@ -10,25 +10,29 @@ class DipsCounter {
     companion object {
         // ambang batas siku lurus (posisi atas)
         private const val UP_ELBOW_ANGLE_THRESHOLD = 150.0
-
         // ambang batas siku menekuk (posisi bawah)
-        private const val DOWN_ELBOW_ANGLE_THRESHOLD = 120.0 // sebelumnya 100.0
+        private const val DOWN_ELBOW_ANGLE_THRESHOLD = 120.0
 
-        // 1. badan harus < 110 (posisi 'l')
-        private const val CALIBRATION_BODY_ANGLE_MAX = 110.0
-        // 2. kaki harus > 130 (relatif lurus)
-        private const val CALIBRATION_KNEE_ANGLE_MIN = 130.0
-        // 3. toleransi jarak tangan-pinggul (30% dari tinggi torso)
+        // sudut badan (bahu-pinggul-lutut)
+        // 90 derajat adalah l-sit sempurna. toleransi diberikan untuk kursi tinggi.
+        private const val CALIBRATION_BODY_ANGLE_MIN = 80.0
+        private const val CALIBRATION_BODY_ANGLE_MAX = 140.0
+
+        // sudut kaki (pinggul-lutut-ankle)
+        // 180 lurus, 100 ditekuk. di bawah 100 dianggap terlalu menekuk.
+        private const val CALIBRATION_KNEE_ANGLE_MIN = 100.0
+
+        // toleransi jarak tangan-pinggul (tetap)
         private const val CALIBRATION_WRIST_HIP_RATIO_MAX = 0.3f
 
-        private const val VERTICAL_MOVEMENT_THRESHOLD_RATIO = 0.1f // butuh 10% gerakan
+        private const val VERTICAL_MOVEMENT_THRESHOLD_RATIO = 0.1f
 
         // nunggu 3 frame biar stabil
         private const val CONFIRMATION_FRAMES = 3
     }
 
     private var repCount = 0
-    private var currentState = ExerciseState.UP // mulai dari atas (lengan lurus)
+    private var currentState = ExerciseState.UP
     private var framesInTargetState = 0
     private var isCalibrated = false
     private var stableUpFrames = 0
@@ -36,6 +40,7 @@ class DipsCounter {
     // patokan posisi y bahu saat kalibrasi
     private var calibratedUpShoulderY: Float = 0f
 
+    // ini 'catatan' data selama satu repetisi
     private var minElbowAngleInRep: Double = 180.0
 
     // reset hitungan kalau orangnya keluar frame
@@ -93,12 +98,12 @@ class DipsCounter {
         val rightElbowAngle = PoseAngleCalculator.calculateAngle(rightShoulder!!, rightElbow!!, rightWrist!!)
         val averageElbowAngle = (leftElbowAngle + rightElbowAngle) / 2
 
-        // sudut cek 'berdiri': bahu-pinggul-lutut
+        // sudut cek 'posisi duduk': bahu-pinggul-lutut
         val leftBodyAngle = PoseAngleCalculator.calculateAngle(leftShoulder, leftHip!!, leftKnee!!)
         val rightBodyAngle = PoseAngleCalculator.calculateAngle(rightShoulder, rightHip!!, rightKnee!!)
         val averageBodyAngle = (leftBodyAngle + rightBodyAngle) / 2
 
-        // sudut cek 'kaki lurus': pinggul-lutut-pergelangan kaki
+        // sudut cek 'kaki': pinggul-lutut-pergelangan kaki
         val leftKneeAngle = PoseAngleCalculator.calculateAngle(leftHip, leftKnee, leftAnkle!!)
         val rightKneeAngle = PoseAngleCalculator.calculateAngle(rightHip, rightKnee, rightAnkle!!)
         val averageKneeAngle = (leftKneeAngle + rightKneeAngle) / 2
@@ -111,44 +116,45 @@ class DipsCounter {
 
         if (!isCalibrated) {
 
-            // hitung 3 syarat form awal
             val torsoHeight = abs(avgShoulderY - avgHipY)
-            val isBodyShapeCorrect = averageBodyAngle < CALIBRATION_BODY_ANGLE_MAX
+
+            // 1. cek badan (harus dalam rentang 80-140 derajat)
+            val isBodyShapeCorrect = averageBodyAngle in CALIBRATION_BODY_ANGLE_MIN..CALIBRATION_BODY_ANGLE_MAX
+
+            // 2. cek kaki (boleh lurus atau ditekuk sedikit, > 100 derajat)
             val isLegShapeCorrect = averageKneeAngle > CALIBRATION_KNEE_ANGLE_MIN
 
-            // pastikan torsoHeight tidak nol
+            // 3. cek tangan dekat pinggul
             val areHandsPlacedCorrectly = if (torsoHeight > 0) {
                 abs(avgWristY - avgHipY) < (torsoHeight * CALIBRATION_WRIST_HIP_RATIO_MAX)
             } else false
 
-            // kirim feedback spesifik berdasarkan apa yang salah
+            // kirim feedback spesifik
             if (!isBodyShapeCorrect) {
                 stableUpFrames = 0
-                return RepResult(repCount, "Kalibrasi", "Duduk di tepi kursi", null)
+                return RepResult(repCount, "Kalibrasi", "Posisikan badan di kursi (tegak)", null)
             }
             if (!isLegShapeCorrect) {
                 stableUpFrames = 0
-                return RepResult(repCount, "Kalibrasi", "Luruskan kaki ke depan", null)
+                return RepResult(repCount, "Kalibrasi", "Luruskan kaki ke depan (min 100°)", null)
             }
             if (!areHandsPlacedCorrectly) {
                 stableUpFrames = 0
                 return RepResult(repCount, "Kalibrasi", "Posisikan tangan di tepi kursi", null)
             }
 
-            // jika semua form benar, baru cek lengan lurus
+            // jika form benar, cek lengan lurus untuk mulai
             if (averageElbowAngle > UP_ELBOW_ANGLE_THRESHOLD) {
                 stableUpFrames++
                 if (stableUpFrames >= CONFIRMATION_FRAMES + 2) {
-                    isCalibrated = true // kalibrasi berhasil!
+                    isCalibrated = true // kalibrasi berhasil
                     calibratedUpShoulderY = avgShoulderY // simpan patokan y
                 }
             } else {
                 stableUpFrames = 0
-                // form sudah benar, tinggal luruskan lengan
                 return RepResult(repCount, "Kalibrasi", "Luruskan lengan", null)
             }
 
-            // default jika masih proses
             return RepResult(repCount, "Kalibrasi", "Tahan posisi...", null)
         }
 
@@ -176,7 +182,6 @@ class DipsCounter {
 
             // catat metrik terburuk selama posisi turun
             minElbowAngleInRep = min(minElbowAngleInRep, averageElbowAngle)
-            // minKneeAngleInRep = min(minKneeAngleInRep, averageKneeAngle) // (dihapus)
 
             // cek transisi ke atas (kembali lurus)
             if (averageElbowAngle > UP_ELBOW_ANGLE_THRESHOLD) {
@@ -196,11 +201,6 @@ class DipsCounter {
                         repIsValid = false // gerakan tidak cukup dalam
                     }
 
-                    // if (minKneeAngleInRep < LEG_BENT_THRESHOLD) {
-                    //     feedbackReport.add("Jaga kaki tetap lurus")
-                    //     repIsValid = false
-                    // }
-
                     // hitung repetisi hanya jika valid
                     if (repIsValid) {
                         repCount++
@@ -214,9 +214,7 @@ class DipsCounter {
             }
         }
 
-        // jika 'up' (lengan lurus), instruksinya 'turun'
-        // jika 'down' (lengan nekuk), instruksinya 'naik'
-        val status = if (currentState == ExerciseState.UP) "TURUN" else "NAIK"
+        val status = if (currentState == ExerciseState.UP) "NAIK" else "TURUN"
         // jangan kirim feedback di antara repetisi
         return RepResult(repCount, status, null, null)
     }

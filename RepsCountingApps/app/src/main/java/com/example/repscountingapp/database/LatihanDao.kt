@@ -23,4 +23,7 @@ interface LatihanDao {
 
     @Delete
     suspend fun delete(history: LatihanHistory)
+
+    @Query("SELECT * FROM latihan_history WHERE tanggal >= :minTimeStamp")
+    fun getHistorySince(minTimeStamp: Long): Flow<List<LatihanHistory>>
 }

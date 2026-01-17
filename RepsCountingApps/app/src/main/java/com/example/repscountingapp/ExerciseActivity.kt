@@ -11,10 +11,12 @@ import android.hardware.SensorManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.speech.tts.TextToSpeech // Import TTS
 import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog // Import Dialog untuk statistik
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
@@ -32,9 +34,9 @@ import com.example.repscountingapp.logic.HighKneesCounter
 import com.example.repscountingapp.logic.LungesCounter
 import com.example.repscountingapp.logic.PushupCounter
 import com.example.repscountingapp.logic.RepResult
-import com.example.repscountingapp.logic.ShoulderTapCounter // <-- TAMBAHKAN IMPORT INI
 import com.example.repscountingapp.logic.SitupCounter
 import com.example.repscountingapp.logic.SquatCounter
+import com.example.repscountingapp.logic.ShoulderTapCounter
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.pose.PoseDetection
 import com.google.mlkit.vision.pose.PoseDetector
@@ -45,19 +47,19 @@ import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.util.Locale
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import javax.inject.Inject
 import kotlin.math.sqrt
 
 @AndroidEntryPoint
-class ExerciseActivity : AppCompatActivity(), SensorEventListener {
+class ExerciseActivity : AppCompatActivity(), SensorEventListener, TextToSpeech.OnInitListener {
 
     private lateinit var binding: ActivityExerciseBinding
     private lateinit var cameraExecutor: ExecutorService
     private lateinit var poseDetector: PoseDetector
 
-    // ini semua logika yang lagi jalan
     private var pushupCounter: PushupCounter? = null
     private var squatCounter: SquatCounter? = null
     private var lungesCounter: LungesCounter? = null
@@ -66,15 +68,13 @@ class ExerciseActivity : AppCompatActivity(), SensorEventListener {
     private var gluteBridgesCounter: GluteBridgesCounter? = null
     private var backExtensionCounter: BackExtensionCounter? = null
     private var dipsCounter: DipsCounter? = null
-    private var shoulderTapCounter: ShoulderTapCounter? = null // <-- TAMBAHKAN INI
+    private var shoulderTapCounter: ShoulderTapCounter? = null
     private var activeExerciseType: String? = null
 
-    // ini buat ngurusin sensor goyang
     private lateinit var sensorManager: SensorManager
     private var linearAccelSensor: Sensor? = null
     @Volatile private var isPhoneStable = true
     private var lastShakeTimestamp: Long = 0
-    // hitungan frame goyang berturut-turut
     private var unstableFrameCount = 0
 
     @Inject
@@ -84,12 +84,18 @@ class ExerciseActivity : AppCompatActivity(), SensorEventListener {
     private var lastRepCount = 0
     private var firstRepBitmap: Bitmap? = null
 
+    // --- FITUR BARU: TTS & STATISTIK ---
+    private lateinit var tts: TextToSpeech
+    private var lastSpokenFeedback: String = "" // Biar nggak ngulang feedback yang sama terus menerus
+    private var lastSpokenTime: Long = 0
+
+    // Variabel untuk menyimpan statistik error: "Nama Error" -> Jumlah
+    private val errorStatistics = mutableMapOf<String, Int>()
+    // -----------------------------------
+
     companion object {
-        // ambang batas disesuaikan
         private const val MOVEMENT_THRESHOLD = 0.5f
-        // harus goyang 3 frame berturut-turut
         private const val UNSTABLE_FRAME_THRESHOLD = 3
-        // waktu tenang setelah goyangan terdeteksi
         private const val STABLE_TIME_MS = 1000L
     }
 
@@ -97,6 +103,9 @@ class ExerciseActivity : AppCompatActivity(), SensorEventListener {
         super.onCreate(savedInstanceState)
         binding = ActivityExerciseBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Inisialisasi TTS
+        tts = TextToSpeech(this, this)
 
         activeExerciseType = intent.getStringExtra("EXERCISE_TYPE")
 
@@ -109,7 +118,7 @@ class ExerciseActivity : AppCompatActivity(), SensorEventListener {
             "GLUTE_BRIDGES" -> gluteBridgesCounter = GluteBridgesCounter()
             "BACK_EXTENTION" -> backExtensionCounter = BackExtensionCounter()
             "DIPS" -> dipsCounter = DipsCounter()
-            "SHOULDER_TAP" -> shoulderTapCounter = ShoulderTapCounter() // <-- TAMBAHKAN INI
+            "SHOULDER_TAP" -> shoulderTapCounter = ShoulderTapCounter()
         }
 
         requestCameraPermission()
@@ -117,64 +126,80 @@ class ExerciseActivity : AppCompatActivity(), SensorEventListener {
         initializePoseDetector()
 
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
-        // minta sensor yang spesifik (linear acceleration)
         linearAccelSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION)
 
         binding.finishButton.isEnabled = false
 
+        // Ubah logika tombol selesai untuk menampilkan statistik dulu
         binding.finishButton.setOnClickListener {
-            saveLatihanAndFinish()
+            showCompletionDialog()
         }
     }
 
+    // --- SETUP TTS ---
+    override fun onInit(status: Int) {
+        if (status == TextToSpeech.SUCCESS) {
+            // Coba Bahasa Indonesia, kalau gak ada fallback ke Inggris
+            val result = tts.setLanguage(Locale("id", "ID"))
+            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                tts.setLanguage(Locale.US)
+            }
+        }
+    }
+
+    // Fungsi pintar untuk bicara
+    private fun speak(text: String, isPriority: Boolean = false) {
+        if (isPriority) {
+            // Kalau prioritas (hitungan repetisi), potong suara lain (FLUSH)
+            tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
+        } else {
+            // Kalau feedback, antrikan di belakang (ADD)
+            // Cek biar nggak spamming feedback yang sama dalam waktu singkat (misal 3 detik)
+            val currentTime = System.currentTimeMillis()
+            if (text != lastSpokenFeedback || (currentTime - lastSpokenTime) > 3000) {
+                tts.speak(text, TextToSpeech.QUEUE_ADD, null, null)
+                lastSpokenFeedback = text
+                lastSpokenTime = currentTime
+            }
+        }
+    }
+    // ----------------
+
     override fun onResume() {
         super.onResume()
-        // nyalain sensor pas aplikasi dibuka
         sensorManager.registerListener(this, linearAccelSensor, SensorManager.SENSOR_DELAY_UI)
     }
 
     override fun onPause() {
         super.onPause()
-        // matiin sensor pas aplikasi ditutup, biar hemat baterai
         sensorManager.unregisterListener(this)
+        // Stop bicara kalau aplikasi dipause
+        if (::tts.isInitialized) tts.stop()
     }
 
-    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
-        // nggak perlu diapa-apain
-    }
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 
     override fun onSensorChanged(event: SensorEvent?) {
-        // fungsi ini ngecek terus-terusan apakah hp-nya lagi goyang
         if (event?.sensor?.type == Sensor.TYPE_LINEAR_ACCELERATION) {
             val x = event.values[0]
             val y = event.values[1]
             val z = event.values[2]
-
-            // hitung total gerakan di semua sumbu
             val movementMagnitude = sqrt(x * x + y * y + z * z)
 
-            // cek apakah gerakannya ngelewatin batas toleransi
             if (movementMagnitude > MOVEMENT_THRESHOLD) {
-                // gerakan terdeteksi, tambah hitungan frame goyang
                 unstableFrameCount++
-
-                // kalau sudah 3 frame goyang terus, baru kita flag
                 if (unstableFrameCount >= UNSTABLE_FRAME_THRESHOLD) {
                     isPhoneStable = false
                     lastShakeTimestamp = System.currentTimeMillis()
                 }
             } else {
-                // gerakan di bawah threshold (dianggap diam)
-                unstableFrameCount = 0 // reset hitungan frame goyang
-
-                // cek udah diem berapa lama
+                unstableFrameCount = 0
                 if (System.currentTimeMillis() - lastShakeTimestamp > STABLE_TIME_MS) {
                     isPhoneStable = true
                 }
             }
         }
     }
-
 
     private fun initializePoseDetector() {
         val options = PoseDetectorOptions.Builder()
@@ -210,7 +235,6 @@ class ExerciseActivity : AppCompatActivity(), SensorEventListener {
                                 .addOnSuccessListener { pose ->
                                     binding.overlay.drawPose(pose, sourceWidth, sourceHeight)
 
-                                    // minta hasil analisis dari logika yang aktif
                                     val result: RepResult = when (activeExerciseType) {
                                         "PUSHUP" -> pushupCounter!!.analyzePose(pose, isPhoneStable)
                                         "SQUAT" -> squatCounter!!.analyzePose(pose, isPhoneStable)
@@ -220,7 +244,7 @@ class ExerciseActivity : AppCompatActivity(), SensorEventListener {
                                         "GLUTE_BRIDGES" -> gluteBridgesCounter!!.analyzePose(pose, isPhoneStable)
                                         "BACK_EXTENTION" -> backExtensionCounter!!.analyzePose(pose, isPhoneStable)
                                         "DIPS" -> dipsCounter!!.analyzePose(pose, isPhoneStable)
-                                        "SHOULDER_TAP" -> shoulderTapCounter!!.analyzePose(pose, isPhoneStable) // <-- TAMBAHKAN INI
+                                        "SHOULDER_TAP" -> shoulderTapCounter!!.analyzePose(pose, isPhoneStable)
                                         else -> RepResult(0, "Error", null, null)
                                     }
 
@@ -232,6 +256,9 @@ class ExerciseActivity : AppCompatActivity(), SensorEventListener {
                                             lastRepCount = result.count
                                             binding.repCountText.text = result.count.toString()
 
+                                            // 1. Suara Hitungan (Prioritas Tinggi)
+                                            speak(result.count.toString(), isPriority = true)
+
                                             if (result.count == 1) {
                                                 binding.finishButton.isEnabled = true
                                                 firstRepBitmap = binding.viewFinder.bitmap
@@ -242,11 +269,22 @@ class ExerciseActivity : AppCompatActivity(), SensorEventListener {
 
                                         var feedbackToShow: String? = null
                                         if (result.postRepFeedback != null && result.postRepFeedback.isNotEmpty()) {
+
+                                            // --- LOGIKA FEEDBACK & STATISTIK ---
+                                            // Simpan error ke statistik
+                                            for (errorMsg in result.postRepFeedback) {
+                                                val currentCount = errorStatistics.getOrDefault(errorMsg, 0)
+                                                errorStatistics[errorMsg] = currentCount + 1
+
+                                                // Ucapkan error (Antrian)
+                                                speak(errorMsg, isPriority = false)
+                                            }
+
                                             feedbackToShow = result.postRepFeedback.joinToString("\n")
 
                                         } else if (result.realTimeFeedback != null) {
+                                            // Feedback realtime (kalibrasi)
                                             if (lastRepCount == 0) {
-                                                // izinkan semua pesan kalibrasi
                                                 if (result.realTimeFeedback == "Pastikan tubuh terlihat" ||
                                                     result.realTimeFeedback == "Ponsel Goyang" ||
                                                     result.realTimeFeedback == "Luruskan lengan" ||
@@ -261,10 +299,14 @@ class ExerciseActivity : AppCompatActivity(), SensorEventListener {
                                                     result.realTimeFeedback == "ANGKAT KANAN" ||
                                                     result.realTimeFeedback == "TAP KIRI" ||
                                                     result.realTimeFeedback == "TAP KANAN") {
+
                                                     feedbackToShow = result.realTimeFeedback
+                                                    // Ucapkan feedback realtime (tapi jangan spam)
+                                                    speak(result.realTimeFeedback, isPriority = false)
                                                 }
                                             } else {
                                                 feedbackToShow = result.realTimeFeedback
+                                                speak(result.realTimeFeedback, isPriority = false)
                                             }
                                         }
 
@@ -308,19 +350,50 @@ class ExerciseActivity : AppCompatActivity(), SensorEventListener {
         }
     }
 
-    private fun saveLatihanAndFinish() {
-        if (isSaving) return
+    // --- DIALOG RINGKASAN & STATISTIK ---
+    private fun showCompletionDialog() {
+        // Stop proses kamera & suara sementara
+        isSaving = true
+        if (::tts.isInitialized) tts.stop()
 
         val repCount = binding.repCountText.text.toString().toIntOrNull() ?: 0
 
-        if (repCount == 0) {
-            Toast.makeText(this, "Repetisi masih 0, tidak ada yang disimpan.", Toast.LENGTH_SHORT).show()
-            return
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Latihan Selesai")
+
+        var message = "Total Repetisi: $repCount\n\n"
+
+        if (errorStatistics.isNotEmpty()) {
+            message += "Catatan Koreksi Form:\n"
+            for ((error, count) in errorStatistics) {
+                message += "- $error: $count kali\n"
+            }
+        } else {
+            message += "Kerja bagus! Form gerakan sempurna."
         }
 
-        isSaving = true
+        builder.setMessage(message)
+        builder.setCancelable(false) // User harus pilih tombol
+
+        builder.setPositiveButton("Simpan") { _, _ ->
+            saveLatihanAndFinish()
+        }
+
+        builder.setNegativeButton("Lanjut Latihan") { dialog, _ ->
+            // Lanjutkan latihan
+            isSaving = false
+            dialog.dismiss()
+        }
+
+        builder.show()
+    }
+    // ------------------------------------
+
+    private fun saveLatihanAndFinish() {
+        // (IsSaving sudah true dari showCompletionDialog)
         Toast.makeText(this, "Menyimpan...", Toast.LENGTH_SHORT).show()
 
+        val repCount = binding.repCountText.text.toString().toIntOrNull() ?: 0
         val exerciseName = activeExerciseType ?: "Unknown"
         val timestamp = System.currentTimeMillis()
 
@@ -362,8 +435,11 @@ class ExerciseActivity : AppCompatActivity(), SensorEventListener {
         }
     }
 
-
     override fun onDestroy() {
+        if (::tts.isInitialized) {
+            tts.stop()
+            tts.shutdown()
+        }
         super.onDestroy()
         cameraExecutor.shutdown()
         poseDetector.close()

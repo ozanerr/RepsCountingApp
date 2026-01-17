@@ -5,11 +5,12 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [LatihanHistory::class], version = 1)
+@Database(entities = [LatihanHistory::class, UserProfile::class], version = 2)
 abstract class AppDatabase : RoomDatabase() {
 
     // Kasi tau database-nya kalau kita punya DAO ini
     abstract fun latihanDao(): LatihanDao
+    abstract fun userProfileDao(): UserProfileDao
 
     companion object {
         // 'Volatile' biar nilainya selalu update di semua thread
@@ -25,7 +26,7 @@ abstract class AppDatabase : RoomDatabase() {
                         context.applicationContext,
                         AppDatabase::class.java,
                         "reps_counter_database"
-                    ).build()
+                    ).fallbackToDestructiveMigration().build()
                     INSTANCE = instance
                 }
                 return instance

@@ -6,6 +6,7 @@ import androidx.fragment.app.Fragment
 import com.example.repscountingapp.databinding.ActivityMainBinding
 import com.example.repscountingapp.fragments.HistoryFragment
 import com.example.repscountingapp.fragments.LatihanFragment
+import com.example.repscountingapp.fragments.ProfileFragment
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -34,6 +35,10 @@ class MainActivity : AppCompatActivity() {
                 R.id.nav_history -> {
                     // Kalau 'History' diklik, kita ganti ke halaman History.
                     loadFragment(HistoryFragment())
+                    true
+                }
+                R.id.nav_profile -> {
+                    loadFragment(ProfileFragment())
                     true
                 }
                 else -> false

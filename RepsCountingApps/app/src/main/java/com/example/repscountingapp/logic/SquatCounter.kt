@@ -2,6 +2,7 @@ package com.example.repscountingapp.logic
 
 import com.google.mlkit.vision.pose.Pose
 import com.google.mlkit.vision.pose.PoseLandmark
+import kotlin.math.abs
 import kotlin.math.min
 
 class SquatCounter {
@@ -12,6 +13,9 @@ class SquatCounter {
         private const val DOWN_KNEE_ANGLE_THRESHOLD = 90.0
         // Nunggu 3 frame biar stabil
         private const val CONFIRMATION_FRAMES = 3
+
+        // Badan harus turun minimal 15% dari tinggi torso agar dianggap squat valid
+        private const val VERTICAL_MOVEMENT_THRESHOLD_RATIO = 0.15f
     }
 
     private var repCount = 0
@@ -19,6 +23,9 @@ class SquatCounter {
     private var framesInTargetState = 0
     private var isCalibrated = false
     private var stableUpFrames = 0
+
+    // Variabel baru untuk 'posisi atas' yang jadi patokan
+    private var calibratedUpShoulderY: Float = 0f
 
     private var minKneeAngleInRep: Double = 180.0
     private var wasBackStraightInRep: Boolean = true
@@ -29,6 +36,7 @@ class SquatCounter {
         stableUpFrames = 0
         isCalibrated = false
         currentState = ExerciseState.UP
+        calibratedUpShoulderY = 0f // Reset patokan
         resetRepMetrics()
     }
 
@@ -84,6 +92,8 @@ class SquatCounter {
                 stableUpFrames++
                 if (stableUpFrames >= CONFIRMATION_FRAMES + 2) {
                     isCalibrated = true
+                    // Siapin patokan awal buat 'posisi atas' (tinggi bahu saat berdiri)
+                    calibratedUpShoulderY = avgShoulderY
                 }
             } else {
                 stableUpFrames = 0
@@ -91,10 +101,15 @@ class SquatCounter {
             return RepResult(repCount, "Kalibrasi", "Berdiri tegak", null)
         }
 
+        // Hitung ambang batas gerakan berdasarkan ukuran tubuh user
+        val torsoHeight = abs(avgHipY - avgShoulderY)
+        val movementThreshold = torsoHeight * VERTICAL_MOVEMENT_THRESHOLD_RATIO
+
         // Logika utama buat hitung repetisi
         if (currentState == ExerciseState.UP) {
-            // Cek transisi dari atas ke bawah
-            if (averageKneeAngle < 150.0) { // Mulai gerakan turun
+            val isBodyMovingDown = avgShoulderY > (calibratedUpShoulderY + movementThreshold)
+
+            if (averageKneeAngle < 150.0 && isBodyMovingDown) { // Mulai gerakan turun
                 framesInTargetState++
                 if (framesInTargetState >= CONFIRMATION_FRAMES) {
                     currentState = ExerciseState.DOWN
@@ -120,6 +135,9 @@ class SquatCounter {
                     currentState = ExerciseState.UP
                     framesInTargetState = 0
 
+                    // Update patokan tinggi bahu saat berdiri lagi
+                    calibratedUpShoulderY = avgShoulderY
+
                     val feedbackReport = mutableSetOf<String>()
                     var repIsValid = true
 
@@ -140,7 +158,6 @@ class SquatCounter {
                         repCount++
                     }
 
-                    // Kirim laporan: rep, status, dan feedback pasca-repetisi
                     return RepResult(repCount, "TURUN", null, feedbackReport.ifEmpty { null })
                 }
             } else {
@@ -148,9 +165,9 @@ class SquatCounter {
             }
         }
 
-        val status = if (currentState == ExerciseState.UP) "TURUN" else "NAIK"
+        val status = if (currentState == ExerciseState.UP) "NAIK" else "TURUN"
+
         // Di antara repetisi, jangan kirim feedback apa-apa
         return RepResult(repCount, status, null, null)
     }
 }
-

@@ -8,11 +8,11 @@ class GluteBridgesCounter {
 
     companion object {
         // ambang batas sudut badan (bahu-pinggul-lutut)
-
-        // posisi di lantai (menekuk)
         private const val UP_BODY_ANGLE_THRESHOLD = 135.0
-        // posisi puncak (lurus)
         private const val DOWN_BODY_ANGLE_THRESHOLD = 160.0
+
+        // Lutut harus selalu ditekuk saat glute bridges.
+        private const val KNEE_BENT_MAX_THRESHOLD = 150.0
 
         // nunggu 3 frame biar stabil
         private const val CONFIRMATION_FRAMES = 3
@@ -57,9 +57,12 @@ class GluteBridgesCounter {
         val leftKnee = pose.getPoseLandmark(PoseLandmark.LEFT_KNEE)
         val rightKnee = pose.getPoseLandmark(PoseLandmark.RIGHT_KNEE)
 
+        val leftAnkle = pose.getPoseLandmark(PoseLandmark.LEFT_ANKLE)
+        val rightAnkle = pose.getPoseLandmark(PoseLandmark.RIGHT_ANKLE)
+
         val landmarks = listOf(
             leftShoulder, rightShoulder, leftHip, rightHip,
-            leftKnee, rightKnee
+            leftKnee, rightKnee, leftAnkle, rightAnkle
         )
 
         // reset jika ada sendi tidak terlihat
@@ -74,11 +77,19 @@ class GluteBridgesCounter {
         val rightBodyAngle = PoseAngleCalculator.calculateAngle(rightShoulder!!, rightHip!!, rightKnee!!)
         val averageBodyAngle = (leftBodyAngle + rightBodyAngle) / 2
 
+        val leftKneeAngle = PoseAngleCalculator.calculateAngle(leftHip, leftKnee!!, leftAnkle!!)
+        val rightKneeAngle = PoseAngleCalculator.calculateAngle(rightHip!!, rightKnee!!, rightAnkle!!)
+        val averageKneeAngle = (leftKneeAngle + rightKneeAngle) / 2
+
+        // Cek apakah lutut lurus (indikasi salah gerakan)
+        val isKneeStraight = averageKneeAngle > KNEE_BENT_MAX_THRESHOLD
+
 
         // proses kalibrasi, minta pengguna berbaring
         if (!isCalibrated) {
-            // cek apakah sudah di posisi berbaring (sudut < 135)
-            if (averageBodyAngle < UP_BODY_ANGLE_THRESHOLD) {
+            // Cek 1: Badan menekuk (< 135)
+            // Cek 2: Lutut HARUS ditekuk (!isKneeStraight)
+            if (averageBodyAngle < UP_BODY_ANGLE_THRESHOLD && !isKneeStraight) {
                 stableUpFrames++
                 if (stableUpFrames >= CONFIRMATION_FRAMES + 2) {
                     isCalibrated = true
@@ -86,8 +97,20 @@ class GluteBridgesCounter {
             } else {
                 stableUpFrames = 0
             }
+
+            // Berikan feedback spesifik jika kaki lurus
+            if (isKneeStraight) {
+                return RepResult(repCount, "Kalibrasi", "Tekuk lutut Anda", null)
+            }
+
             // kirim status kalibrasi
             return RepResult(repCount, "Kalibrasi", "Berbaring, lutut ditekuk", null)
+        }
+
+        // Safety Check: Jika di tengah jalan kaki lurus, reset (bukan glute bridge)
+        if (isKneeStraight) {
+            resetState()
+            return RepResult(repCount, "--", "Tekuk lutut Anda", null)
         }
 
         // logika utama penghitungan repetisi
@@ -131,7 +154,6 @@ class GluteBridgesCounter {
                         repCount++
                     }
 
-                    // status baru sekarang up (berbaring), jadi instruksinya naik
                     return RepResult(repCount, "NAIK", null, feedbackReport.ifEmpty { null })
                 }
             } else {
@@ -139,9 +161,7 @@ class GluteBridgesCounter {
             }
         }
 
-        // jika 'up' (berbaring), instruksinya 'naik'
-        // jika 'down' (puncak), instruksinya 'turun'
-        val status = if (currentState == ExerciseState.UP) "NAIK" else "TURUN"
+        val status = if (currentState == ExerciseState.UP) "TURUN" else "NAIK"
         // jangan kirim feedback di antara repetisi
         return RepResult(repCount, status, null, null)
     }

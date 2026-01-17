@@ -152,8 +152,7 @@ class SitupCounter {
                         repCount++
                     }
 
-                    // status baru sekarang UP (berbaring), jadi instruksinya NAIK
-                    return RepResult(repCount, "NAIK", null, feedbackReport.ifEmpty { null })
+                    return RepResult(repCount, "TURUN", null, feedbackReport.ifEmpty { null })
                 }
             } else {
                 framesInTargetState = 0
@@ -162,7 +161,7 @@ class SitupCounter {
 
         // jika 'UP' (berbaring), instruksinya 'NAIK'
         // jika 'DOWN' (duduk), instruksinya 'TURUN'
-        val status = if (currentState == ExerciseState.UP) "NAIK" else "TURUN"
+        val status = if (currentState == ExerciseState.UP) "TURUN" else "NAIK"
         // jangan kirim feedback di antara repetisi
         return RepResult(repCount, status, null, null)
     }

@@ -2,7 +2,6 @@ package com.example.repscountingapp.logic
 
 import com.google.mlkit.vision.pose.Pose
 import com.google.mlkit.vision.pose.PoseLandmark
-import kotlin.math.abs
 import kotlin.math.min
 
 private enum class HighKneeState {
@@ -20,7 +19,7 @@ class HighKneesCounter {
         private const val BACK_STRAIGHT_THRESHOLD = 0.9f
 
         // target angkatan lutut (sudut harus lebih kecil dari ini)
-        private const val KNEE_LIFT_THRESHOLD = 133.0 // pakai angka 133.0
+        private const val KNEE_LIFT_THRESHOLD = 130.0
 
         private const val KNEE_MOVEMENT_THRESHOLD = 140.0
 
