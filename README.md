@@ -11,16 +11,14 @@ Anggota:
 3. Filbert Febrian Tanada (221110476)
 
 URL Aplikasi Live:
-Tidak melakukan deploy karena aplikasi mobile, tapi menyertakan build file .apk yang bisa didownload di folder aplikasi jadi atau akses link berikut 'https://drive.google.com/file/d/1CuSr6qookCNjnbOKjmgHus4hZ3oVHJYH/view?usp=sharing'
+Tidak melakukan deploy karena aplikasi mobile, tapi menyertakan build file .apk yang bisa didownload di folder aplikasi jadi
 
 Petunjuk Instalasi & Izin:
-1. Buka link Google Drive yang tersedia dan download file .apk aplikasi.
-2. Buka aplikasi "File Manager" (atau "File Saya") di ponsel Android Anda dan cari file .apk yang baru saja di-download (biasanya di folder "Download").
-3. Klik pada file .apk tersebut untuk memulai instalasi.
-4. Jika muncul peringatan keamanan, pilih "Setelan" (Settings) dan aktifkan opsi "Izinkan dari sumber ini" (Allow from this source).
-5. Kembali dan lanjutkan proses instalasi.
-6. Setelah selesai, buka aplikasi.
-7. Aplikasi akan meminta Izin Kamera. Pilih "Izinkan" (Allow). Izin ini wajib agar aplikasi bisa mendeteksi gerakan Anda.
+1. Klik pada file .apk tersebut untuk memulai instalasi.
+2. Jika muncul peringatan keamanan, pilih "Setelan" (Settings) dan aktifkan opsi "Izinkan dari sumber ini" (Allow from this source).
+3. Kembali dan lanjutkan proses instalasi.
+4. Setelah selesai, buka aplikasi.
+5. Aplikasi akan meminta Izin Kamera. Pilih "Izinkan" (Allow). Izin ini wajib agar aplikasi bisa mendeteksi gerakan Anda.
 
 Petunjuk Penggunaan Aplikasi
 
