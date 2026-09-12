@@ -4,7 +4,7 @@ Aplikasi mobile Android cerdas berbasis *Human Pose Estimation* untuk menghitung
 
 ## ✨ Fitur Utama
 * **Penghitung Repetisi Presisi:** Menghitung repetisi secara otomatis berdasarkan ambang batas (*threshold*) sudut kinesiologi tubuh. Hitungan hanya bertambah jika gerakan dieksekusi dengan sah.
-* **Koreksi Gerakan Real-Time:** Memberikan panduan dan teguran instan saat postur tidak sesuai standar (misal: "Turun lebih rendah", "Jaga dada tetap tegak").
+* **Koreksi Gerakan Real-Time:** Memberikan panduan dan teguran instan saat postur tidak sesuai standar.
 * **Mendukung 7 Jenis Latihan:** *Push-up*, *Squat*, *Sit-up*, *High Knees*, *Lunges*, *Dips*, dan *Glute Bridges*.
 * **On-Device Processing:** Respons super cepat, hemat kuota, dan privasi pengguna terjamin karena aliran video tidak dikirim ke internet.
 
