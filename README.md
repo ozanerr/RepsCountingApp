@@ -1,4 +1,4 @@
-# Smart Bodyweight Training Tracker
+# repsCountingApps
 
 Aplikasi mobile Android cerdas berbasis *Human Pose Estimation* untuk menghitung repetisi dan memberikan umpan balik (koreksi postur) secara *real-time* pada latihan beban tubuh. Aplikasi ini memanfaatkan Google ML Kit dengan logika evaluasi sudut persendian yang dieksekusi sepenuhnya secara *on-device*, memastikan latensi yang sangat rendah tanpa bergantung pada arsitektur *cloud computing*.
 
