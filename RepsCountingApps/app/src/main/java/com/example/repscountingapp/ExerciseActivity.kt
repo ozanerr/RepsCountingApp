@@ -27,7 +27,6 @@ import androidx.lifecycle.lifecycleScope
 import com.example.repscountingapp.database.LatihanHistory
 import com.example.repscountingapp.database.LatihanRepository
 import com.example.repscountingapp.databinding.ActivityExerciseBinding
-import com.example.repscountingapp.logic.BackExtensionCounter
 import com.example.repscountingapp.logic.DipsCounter
 import com.example.repscountingapp.logic.GluteBridgesCounter
 import com.example.repscountingapp.logic.HighKneesCounter
@@ -36,7 +35,6 @@ import com.example.repscountingapp.logic.PushupCounter
 import com.example.repscountingapp.logic.RepResult
 import com.example.repscountingapp.logic.SitupCounter
 import com.example.repscountingapp.logic.SquatCounter
-import com.example.repscountingapp.logic.ShoulderTapCounter
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.pose.PoseDetection
 import com.google.mlkit.vision.pose.PoseDetector
@@ -66,9 +64,7 @@ class ExerciseActivity : AppCompatActivity(), SensorEventListener, TextToSpeech.
     private var situpCounter: SitupCounter? = null
     private var highKneesCounter: HighKneesCounter? = null
     private var gluteBridgesCounter: GluteBridgesCounter? = null
-    private var backExtensionCounter: BackExtensionCounter? = null
     private var dipsCounter: DipsCounter? = null
-    private var shoulderTapCounter: ShoulderTapCounter? = null
     private var activeExerciseType: String? = null
 
     private lateinit var sensorManager: SensorManager
@@ -84,14 +80,11 @@ class ExerciseActivity : AppCompatActivity(), SensorEventListener, TextToSpeech.
     private var lastRepCount = 0
     private var firstRepBitmap: Bitmap? = null
 
-    // --- FITUR BARU: TTS & STATISTIK ---
     private lateinit var tts: TextToSpeech
     private var lastSpokenFeedback: String = "" // Biar nggak ngulang feedback yang sama terus menerus
     private var lastSpokenTime: Long = 0
 
-    // Variabel untuk menyimpan statistik error: "Nama Error" -> Jumlah
     private val errorStatistics = mutableMapOf<String, Int>()
-    // -----------------------------------
 
     companion object {
         private const val MOVEMENT_THRESHOLD = 0.5f
@@ -116,9 +109,7 @@ class ExerciseActivity : AppCompatActivity(), SensorEventListener, TextToSpeech.
             "SITUP" -> situpCounter = SitupCounter()
             "HIGH_KNEES" -> highKneesCounter = HighKneesCounter()
             "GLUTE_BRIDGES" -> gluteBridgesCounter = GluteBridgesCounter()
-            "BACK_EXTENTION" -> backExtensionCounter = BackExtensionCounter()
             "DIPS" -> dipsCounter = DipsCounter()
-            "SHOULDER_TAP" -> shoulderTapCounter = ShoulderTapCounter()
         }
 
         requestCameraPermission()
@@ -242,9 +233,7 @@ class ExerciseActivity : AppCompatActivity(), SensorEventListener, TextToSpeech.
                                         "SITUP" -> situpCounter!!.analyzePose(pose, isPhoneStable)
                                         "HIGH_KNEES" -> highKneesCounter!!.analyzePose(pose, isPhoneStable)
                                         "GLUTE_BRIDGES" -> gluteBridgesCounter!!.analyzePose(pose, isPhoneStable)
-                                        "BACK_EXTENTION" -> backExtensionCounter!!.analyzePose(pose, isPhoneStable)
                                         "DIPS" -> dipsCounter!!.analyzePose(pose, isPhoneStable)
-                                        "SHOULDER_TAP" -> shoulderTapCounter!!.analyzePose(pose, isPhoneStable)
                                         else -> RepResult(0, "Error", null, null)
                                     }
 

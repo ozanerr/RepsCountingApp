@@ -24,7 +24,7 @@ class MainActivity : AppCompatActivity() {
             loadFragment(LatihanFragment())
         }
 
-        // Ini bagian yang ngurusin kalau kamu klik menu di bottom navigation bar.
+        // Ini bagian yang ngurusin kalau klik menu di bottom navigation bar.
         binding.bottomNavigation.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_latihan -> {

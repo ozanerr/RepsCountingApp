@@ -28,6 +28,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import androidx.core.widget.doAfterTextChanged
 
 @AndroidEntryPoint
 class ProfileFragment : Fragment() {
@@ -48,7 +49,7 @@ class ProfileFragment : Fragment() {
             if (uri != null) {
                 // Tampilkan gambar sementara
                 Glide.with(this).load(uri).circleCrop().into(binding.ivProfilePicture)
-                // Simpan path string (sebaiknya di copy ke internal storage di real app, tapi ini cukup utk demo)
+                // Simpan path string
                 currentPhotoPath = uri.toString()
             }
         }
@@ -67,6 +68,7 @@ class ProfileFragment : Fragment() {
 
         setupChart()
         setupInputs()
+        setupValidations()
         observeData()
 
         binding.radioGroupGender.setOnCheckedChangeListener { _, checkedId ->
@@ -97,17 +99,30 @@ class ProfileFragment : Fragment() {
         val chart = binding.weeklyChart
         chart.description.isEnabled = false
         chart.setDrawGridBackground(false)
+
+        // Nonaktifkan sumbu kanan
         chart.axisRight.isEnabled = false
+
+        // settingan sumbu x
         chart.xAxis.position = XAxis.XAxisPosition.BOTTOM
         chart.xAxis.textColor = Color.WHITE
+        chart.xAxis.setDrawGridLines(false) // Hapus garis grid vertikal
+        chart.xAxis.setDrawAxisLine(true) // Garis sumbu tetap ada
+
+        // settingan sumbu y
         chart.axisLeft.textColor = Color.WHITE
-        // Format sumbu kiri jadi bilangan bulat (0, 1, 2...)
+        chart.axisLeft.setDrawGridLines(false) // Hapus garis grid horizontal
+        chart.axisLeft.setDrawAxisLine(true) // Garis sumbu tetap ada
+        chart.axisLeft.axisMinimum = 0f // Hapus nilai -1, paksa mulai dari 0
+
+        // Format angka di sumbu y: Bilangan bulat & Hapus angka 0
         chart.axisLeft.valueFormatter = object : ValueFormatter() {
             override fun getFormattedValue(value: Float): String {
+                if (value == 0f) return "" // Sembunyikan nilai 0 di sumbu Y
                 return value.toInt().toString()
             }
         }
-        chart.axisLeft.granularity = 1f // Jarak minimal antar garis 1
+        chart.axisLeft.granularity = 1f // Jarak minimal antar angka adalah 1
 
         chart.legend.textColor = Color.WHITE
         chart.setNoDataText("Belum ada data latihan minggu ini")
@@ -180,9 +195,10 @@ class ProfileFragment : Fragment() {
             dataSet.valueTextColor = Color.WHITE
             dataSet.valueTextSize = 12f
 
-            // Format angka di atas batang jadi bilangan bulat
+            // Format angka di atas batang jadi bilangan bulat dan sembunyikan 0
             dataSet.valueFormatter = object : ValueFormatter() {
                 override fun getFormattedValue(value: Float): String {
+                    if (value == 0f) return "" // Jangan tampilkan angka 0 di atas batang kosong
                     return value.toInt().toString()
                 }
             }
@@ -195,6 +211,13 @@ class ProfileFragment : Fragment() {
     }
 
     private fun saveProfileData() {
+        if (binding.etName.error != null || binding.etAge.error != null ||
+            binding.etHeight.error != null || binding.etWeight.error != null ||
+            binding.etNeck.error != null || binding.etWaist.error != null) {
+
+            Toast.makeText(context, "Mohon perbaiki data yang masih merah", Toast.LENGTH_SHORT).show()
+            return // Hentikan proses simpan
+        }
         val name = binding.etName.text.toString()
         val age = binding.etAge.text.toString().toIntOrNull() ?: 0
 
@@ -227,6 +250,69 @@ class ProfileFragment : Fragment() {
         } else {
             binding.tvBodyfatResult.text = "Body Fat: -"
             binding.tvBodyfatHint.visibility = View.VISIBLE
+        }
+    }
+
+    private fun setupValidations() {
+        // 1. Validasi Nama (Hanya karakter/huruf dan spasi)
+        binding.etName.doAfterTextChanged { text ->
+            val input = text.toString()
+            // Regex "^[a-zA-Z\\s]+$" memastikan hanya ada huruf (besar/kecil) dan spasi
+            if (input.isNotEmpty() && !input.matches(Regex("^[a-zA-Z\\s]+$"))) {
+                binding.etName.error = "Nama hanya boleh berisi huruf dan spasi"
+            } else {
+                binding.etName.error = null // Hapus error jika sudah benar
+            }
+        }
+
+        // 2. Validasi Umur (0 - 100)
+        binding.etAge.doAfterTextChanged { text ->
+            val input = text.toString().toIntOrNull()
+            if (input != null && (input < 0 || input > 100)) {
+                binding.etAge.error = "Umur harus di antara 0 - 100 tahun"
+            } else {
+                binding.etAge.error = null
+            }
+        }
+
+        // 3. Validasi Tinggi Badan (0 - 200 cm)
+        binding.etHeight.doAfterTextChanged { text ->
+            val input = text.toString().toDoubleOrNull()
+            if (input != null && (input < 0.0 || input > 200.0)) {
+                binding.etHeight.error = "Tinggi badan harus 0 - 200 cm"
+            } else {
+                binding.etHeight.error = null
+            }
+        }
+
+        // 4. Validasi Berat Badan (0 - 200 kg)
+        binding.etWeight.doAfterTextChanged { text ->
+            val input = text.toString().toDoubleOrNull()
+            if (input != null && (input < 0.0 || input > 200.0)) {
+                binding.etWeight.error = "Berat badan harus 0 - 200 kg"
+            } else {
+                binding.etWeight.error = null
+            }
+        }
+
+        // 5. Validasi Lingkar Leher (0 - 100 cm)
+        binding.etNeck.doAfterTextChanged { text ->
+            val input = text.toString().toDoubleOrNull()
+            if (input != null && (input < 0.0 || input > 100.0)) {
+                binding.etNeck.error = "Lingkar leher harus 0 - 100 cm"
+            } else {
+                binding.etNeck.error = null
+            }
+        }
+
+        // 6. Validasi Lingkar Pinggang (0 - 200 cm)
+        binding.etWaist.doAfterTextChanged { text ->
+            val input = text.toString().toDoubleOrNull()
+            if (input != null && (input < 0.0 || input > 200.0)) {
+                binding.etWaist.error = "Lingkar pinggang harus 0 - 200 cm"
+            } else {
+                binding.etWaist.error = null
+            }
         }
     }
 

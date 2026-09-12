@@ -14,7 +14,6 @@ class DipsCounter {
         private const val DOWN_ELBOW_ANGLE_THRESHOLD = 120.0
 
         // sudut badan (bahu-pinggul-lutut)
-        // 90 derajat adalah l-sit sempurna. toleransi diberikan untuk kursi tinggi.
         private const val CALIBRATION_BODY_ANGLE_MIN = 80.0
         private const val CALIBRATION_BODY_ANGLE_MAX = 140.0
 

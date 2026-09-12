@@ -9,7 +9,7 @@ class GluteBridgesCounter {
     companion object {
         // ambang batas sudut badan (bahu-pinggul-lutut)
         private const val UP_BODY_ANGLE_THRESHOLD = 135.0
-        private const val DOWN_BODY_ANGLE_THRESHOLD = 160.0
+        private const val DOWN_BODY_ANGLE_THRESHOLD = 170.0
 
         // Lutut harus selalu ditekuk saat glute bridges.
         private const val KNEE_BENT_MAX_THRESHOLD = 150.0

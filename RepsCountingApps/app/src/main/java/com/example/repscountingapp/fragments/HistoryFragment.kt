@@ -60,7 +60,7 @@ class HistoryFragment : Fragment() {
                 binding.emptyText.visibility = View.GONE
             }
 
-            // kita 'suntikkan' fungsi hapus ke dalam adapter
+            // suntikkan fungsi hapus ke dalam adapter
             adapter = HistoryListAdapter(requireContext(), historyList) { historyItem ->
                 // ini yang akan dijalankan kalau tombol hapus di adapter diklik
                 showDeleteConfirmation(historyItem)

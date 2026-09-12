@@ -19,9 +19,9 @@ class HighKneesCounter {
         private const val BACK_STRAIGHT_THRESHOLD = 0.9f
 
         // target angkatan lutut (sudut harus lebih kecil dari ini)
-        private const val KNEE_LIFT_THRESHOLD = 130.0
+        private const val KNEE_LIFT_THRESHOLD = 115.0
 
-        private const val KNEE_MOVEMENT_THRESHOLD = 140.0
+        private const val KNEE_MOVEMENT_THRESHOLD = 130.0
 
         // nunggu 2 frame biar stabil (lebih cepat)
         private const val CONFIRMATION_FRAMES = 2
@@ -35,7 +35,7 @@ class HighKneesCounter {
     private var stableUpFrames = 0
 
     private var wasBackStraightInCycle: Boolean = true
-    // kita lacak sudut terdalam
+    // lacak sudut terdalam
     private var minLeftKneeAngleInRep: Double = 180.0
     private var minRightKneeAngleInRep: Double = 180.0
 

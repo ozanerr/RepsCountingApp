@@ -82,27 +82,6 @@ class LatihanFragment : Fragment() {
             R.drawable.dips
         )
 
-        // setupExerciseCard(
-        //     binding.backExtentionLayout,
-        //     "BACK EXTENTION",
-        //     "Latihan Punggung",
-        //     R.drawable.back_extention
-        // )
-
-        // setupExerciseCard(
-        //     binding.pullupLayout,
-        //     "PULLUP",
-        //     "Latihan Punggung",
-        //     R.drawable.pullup
-        // )
-
-        setupExerciseCard(
-            binding.shoulderTapLayout,
-            "SHOULDER TAP",
-            "Latihan Bahu",
-            R.drawable.shoulder_tap
-        )
-
         // bikin semua kartu jadi interaktif
         setupCardInteractivity(binding.pushupCard) { showPushupInstructions() }
         setupCardInteractivity(binding.squatCard) { showSquatInstructions() }
@@ -111,12 +90,6 @@ class LatihanFragment : Fragment() {
         setupCardInteractivity(binding.highKneesCard) { showHighKneesInstructions() }
         setupCardInteractivity(binding.gluteBridgesCard) { showGluteBridgesInstructions() }
         setupCardInteractivity(binding.dipsCard) { showDipsInstructions() }
-
-        // setupCardInteractivity(binding.backExtentionCard) { showBackExtensionInstructions() }
-        setupCardInteractivity(binding.shoulderTapCard) { showShoulderTapInstructions() }
-
-        // ini untuk latihan yang belum siap
-        // setupCardInteractivity(binding.pullupCard) { Toast.makeText(context, "Pull Up belum tersedia", Toast.LENGTH_SHORT).show() }
     }
 
     override fun onDestroyView() {

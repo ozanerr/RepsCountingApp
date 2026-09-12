@@ -2,6 +2,7 @@ package com.example.repscountingapp.logic
 
 import com.google.mlkit.vision.pose.Pose
 import com.google.mlkit.vision.pose.PoseLandmark
+import kotlin.math.abs
 import kotlin.math.min
 
 class SitupCounter {
@@ -10,7 +11,7 @@ class SitupCounter {
         // ambang batas berbaring (kaki ditekuk)
         private const val UP_BODY_ANGLE_THRESHOLD = 130.0
 
-        private const val DOWN_BODY_ANGLE_THRESHOLD = 110.0
+        private const val DOWN_BODY_ANGLE_THRESHOLD = 90.0
 
         // ambang batas kaki dianggap lurus (gagal)
         private const val KNEE_STRAIGHT_THRESHOLD = 140.0
@@ -85,10 +86,17 @@ class SitupCounter {
         val rightKneeAngle = PoseAngleCalculator.calculateAngle(rightHip, rightKnee, rightAnkle!!)
         val averageKneeAngle = (leftKneeAngle + rightKneeAngle) / 2
 
+        val avgShoulderY = (leftShoulder.position.y + rightShoulder.position.y) / 2
+        val avgAnkleY = (leftAnkle.position.y + rightAnkle.position.y) / 2
+        val avgShoulderX = (leftShoulder.position.x + rightShoulder.position.x) / 2
+        val avgAnkleX = (leftAnkle.position.x + rightAnkle.position.x) / 2
+
+        val isLyingDown = abs(avgShoulderY - avgAnkleY) < (abs(avgShoulderX - avgAnkleX) * 0.6)
+
         // proses kalibrasi, minta pengguna berbaring
         if (!isCalibrated) {
-            // cek apakah sudah di posisi berbaring (dengan ambang batas baru)
-            if (averageBodyAngle > UP_BODY_ANGLE_THRESHOLD) {
+            // cek apakah sudah di posisi berbaring
+            if (averageBodyAngle > UP_BODY_ANGLE_THRESHOLD && isLyingDown) {
                 stableUpFrames++
                 if (stableUpFrames >= CONFIRMATION_FRAMES + 2) {
                     isCalibrated = true
@@ -125,7 +133,7 @@ class SitupCounter {
             }
 
             // cek transisi ke atas (kembali berbaring)
-            if (averageBodyAngle > UP_BODY_ANGLE_THRESHOLD) {
+            if (averageBodyAngle > UP_BODY_ANGLE_THRESHOLD && isLyingDown) {
                 framesInTargetState++
                 if (framesInTargetState >= CONFIRMATION_FRAMES) {
                     currentState = ExerciseState.UP
